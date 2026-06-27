@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+    <!-- Hace que el boton Run de NetBeans levante el servidor Spring Boot. -->
+    <action>
+        <actionName>run</actionName>
+        <goals>
+            <goal>spring-boot:run</goal>
+        </goals>
+    </action>
+
+    <!-- Accion practica para limpiar, compilar y verificar que el backend no tenga errores. -->
+    <action>
+        <actionName>build</actionName>
+        <goals>
+            <goal>clean</goal>
+            <goal>install</goal>
+        </goals>
+    </action>
+</actions>

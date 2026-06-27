@@ -1,0 +1,1386 @@
+Estamos trabajando en el proyecto Peralta POS.
+
+RUTA:
+C:\Users\peral\OneDrive\Escritorio\Proyectos Portafolio\peralta-pos
+
+OBJETIVO:
+Construir un POS profesional para República Dominicana, conectado con ventas, clientes, inventario, suplidores, compras, crédito, DGII, facturación, contabilidad, empleados y reportes.
+
+TECNOLOGÍAS ACTUALES:
+- Frontend: React 18, TypeScript, Vite y Lucide React.
+- Backend: Java 21, Spring Boot 3.4.6.
+- Persistencia: Spring Data JPA e Hibernate.
+- Base de datos: MySQL.
+- Migraciones: Flyway.
+- Seguridad preparada: Spring Security.
+- Escritorio: Tauri 2.
+- Compilación: Maven.
+- Excel y Word: Apache POI 5.4.1.
+- PDF: JasperReports 7.0.3, jasperreports-pdf 7.0.3 y OpenPDF.
+- Scripts locales: PowerShell.
+- DGII: importación local de DGII_RNC.zip y actualización diaria.
+
+ARCHIVOS PRINCIPALES:
+- apps/web/src/App.tsx
+- apps/web/src/api/client.ts
+- apps/web/src/styles.css
+- apps/web/vite.config.mjs
+- services/api/pom.xml
+- services/api/src/main/java/com/peraltapos/
+- services/api/src/main/resources/db/migration/
+
+FUNCIONES YA IMPLEMENTADAS:
+- Dashboard.
+- Punto de venta.
+- Búsqueda y selección de clientes.
+- Ventas de contado, tarjeta y crédito.
+- Azul y CardNet con comprobante manual.
+- Facturas e historial de ventas.
+- Clientes, perfiles fiscales y límites de crédito.
+- Consulta de RNC con datos locales de DGII.
+- Cuentas por cobrar.
+- Productos y control de stock.
+- Movimientos automáticos por ventas.
+- Suplidores.
+- Facturas de compra.
+- Compras a crédito y cuentas por pagar.
+- Conteos físicos y ajustes automáticos.
+- Reposición por stock mínimo.
+- Órdenes de compra abiertas, recibidas y canceladas.
+- Recepción de una orden mediante factura.
+- Migraciones Flyway V1 hasta V8.
+
+TAREA ACTUAL:
+Corregir y profesionalizar todos los reportes de inventario y órdenes de compra.
+
+PROBLEMA REPORTADO:
+- El Excel antiguo no abría porque el frontend generaba XML y lo nombraba .xls.
+- El PDF antiguo era un documento de texto muy feo.
+- Las órdenes de compra no tenían impresión ni descargas individuales.
+- El usuario pidió PDF, Excel y Word reales.
+
+CAMBIOS YA REALIZADOS:
+1. services/api/pom.xml:
+   - Apache POI ya estaba instalado.
+   - Se añadió jasperreports-pdf 7.0.3.
+
+2. Se crearon:
+   - services/api/src/main/java/com/peraltapos/reporting/BusinessReportService.java
+   - services/api/src/main/java/com/peraltapos/reporting/BusinessReportController.java
+
+3. Endpoints nuevos:
+   - GET /api/reports/inventory.xlsx?includeCosts=true
+   - GET /api/reports/inventory.pdf?includeCosts=true
+   - GET /api/reports/inventory.docx?includeCosts=true
+   - GET /api/reports/purchase-orders/{id}.xlsx
+   - GET /api/reports/purchase-orders/{id}.pdf
+   - GET /api/reports/purchase-orders/{id}.docx
+
+4. En apps/web/src/api/client.ts se añadieron:
+   - downloadInventoryReport(...)
+   - downloadPurchaseOrderReport(...)
+
+5. En App.tsx:
+   - Los reportes generales tienen botones Excel, PDF y Word.
+   - Cada orden tiene Imprimir, PDF, Excel y Word.
+   - printOrder abre el PDF formal o lo descarga si el navegador bloquea la ventana.
+
+ESTADO DE LAS PRUEBAS:
+- El backend compila.
+- TypeScript pasa.
+- El XLSX fue descargado y validado:
+  - Tamaño aproximado 8 KB.
+  - Firma PK válida, por lo que es un XLSX real.
+- El DOCX fue descargado y validado:
+  - Tamaño aproximado 3.5 KB.
+  - Firma PK válida, por lo que es un DOCX real.
+- El PDF todavía devuelve HTTP 500.
+
+ERROR EXACTO DEL PDF:
+java.lang.UnsupportedOperationException
+at java.util.ImmutableCollections$AbstractImmutableMap.put
+at net.sf.jasperreports.engine.fill.JRFillDataset.setDatasourceParameterValue
+at com.peraltapos.reporting.BusinessReportService.createTableReport(...)
+
+CAUSA:
+En BusinessReportService.createTableReport se está llamando:
+
+JasperFillManager.fillReport(
+    JasperCompileManager.compileReport(design),
+    Map.of(),
+    new JRMapCollectionDataSource(data)
+)
+
+JasperReports intenta modificar el mapa de parámetros, pero Map.of() es inmutable.
+
+ARREGLO INMEDIATO:
+Cambiar Map.of() por un mapa mutable:
+
+new HashMap<String, Object>()
+
+Ejemplo:
+
+Map<String, Object> parameters = new HashMap<>();
+
+return JasperFillManager.fillReport(
+    JasperCompileManager.compileReport(design),
+    parameters,
+    new JRMapCollectionDataSource(data)
+);
+
+DESPUÉS DEL ARREGLO:
+1. Ejecutar:
+   C:\Program Files\NetBeans-24\netbeans\java\maven\bin\mvn.cmd -q test
+
+2. Empaquetar:
+   mvn -DskipTests package
+
+3. Iniciar el JAR o backend desde NetBeans.
+
+4. Descargar los tres reportes y validar:
+   - XLSX debe comenzar con firma PK.
+   - DOCX debe comenzar con firma PK.
+   - PDF debe comenzar con %PDF.
+
+5. Abrir visualmente el PDF y revisar:
+   - Encabezado Ferretería Peralta.
+   - Títulos.
+   - Tablas alineadas.
+   - Colores discretos.
+   - Totales.
+   - Paginación.
+   - Que ninguna columna quede cortada.
+
+PENDIENTES DE LIMPIEZA:
+- En App.tsx todavía existen las funciones antiguas:
+  - exportInventoryExcel
+  - exportInventoryPdf
+  - createTextPdf
+  - spreadsheetWorksheet
+  - spreadsheetCell
+- Ya no deben usarse. Eliminarlas cuando los endpoints nuevos estén confirmados.
+- Actualizar .inventory-report-bar en styles.css porque ahora contiene:
+  - Descripción.
+  - Control “Incluir costos”.
+  - Excel.
+  - PDF.
+  - Word.
+  Debe tener cinco columnas en escritorio.
+- Añadir estilos para .purchase-order-documents.
+- Verificar impresión de orden: window.open se ejecuta después de un await y algunos navegadores pueden bloquearlo.
+- Probar reportes individuales con una orden real.
+- No eliminar ni revertir otros cambios del proyecto.
+
+DETALLE ADICIONAL:
+GlobalExceptionHandler.java fue mejorado para registrar la traza completa de errores inesperados mediante SLF4J.
+
+La base de datos está actualmente en Flyway versión 8.
+
+===============================================================================
+BITÁCORA CRONOLÓGICA DE CONTINUIDAD
+===============================================================================
+
+PROPÓSITO DE ESTA BITÁCORA:
+- Mantener en un solo TXT el contexto acumulado del trabajo en Peralta POS.
+- Registrar cada nueva petición del usuario de forma resumida pero fiel.
+- Registrar hallazgos, decisiones, cambios realizados, pruebas y pendientes.
+- Permitir que otro chat de Codex continúe sin depender del historial anterior.
+- No borrar contexto previo; corregir o marcar como superado lo que cambie.
+
+FORMA DE ACTUALIZACIÓN:
+- Después de cada mensaje nuevo del usuario, añadir una entrada con su intención.
+- Al terminar cada bloque de trabajo, anotar resultados comprobados y pendientes.
+- Evitar transcribir conversación irrelevante palabra por palabra.
+- Conservar rutas, errores, decisiones y datos técnicos necesarios para continuar.
+
+-------------------------------------------------------------------------------
+ENTRADA 2026-06-18 — INICIO DEL NUEVO CHAT
+-------------------------------------------------------------------------------
+
+PETICIÓN DEL USUARIO:
+El usuario entregó este archivo, generado al terminarse el contexto de otro chat,
+y pidió usarlo como base para continuar. Solicitó convertirlo en una bitácora
+acumulativa: cada mensaje futuro debe incorporarse aquí, abreviado cuando sea
+conveniente, pero conservando el contexto completo necesario para entregar este
+TXT a otro chat. También pidió revisar el proyecto y preguntar antes de comenzar
+si existe alguna ambigüedad importante.
+
+REVISIÓN REALIZADA:
+- Se leyó completo el contexto heredado.
+- Se recorrió la estructura general del proyecto y se localizaron frontend,
+  backend, migraciones, documentación, scripts y artefactos compilados.
+- La carpeta actual no contiene un directorio .git y por eso Git no la reconoce
+  como repositorio. Sí existe .gitignore. No se debe asumir que hay historial Git.
+- El archivo de contexto está correctamente codificado en UTF-8.
+
+ESTADO CONFIRMADO DE LA TAREA HEREDADA:
+- BusinessReportService.java todavía importa HashMap, pero createTableReport(...)
+  continúa pasando Map.of() a JasperFillManager.fillReport(...).
+- Por tanto, el arreglo indicado para el HTTP 500 del PDF aún no está aplicado.
+- App.tsx ya usa los endpoints nuevos para descargar reportes.
+- App.tsx todavía conserva las funciones antiguas exportInventoryExcel,
+  exportInventoryPdf, createTextPdf, spreadsheetWorksheet y spreadsheetCell.
+- styles.css contiene .inventory-report-bar, pero no apareció una regla específica
+  para .purchase-order-documents en la búsqueda realizada.
+- El próximo trabajo técnico propuesto sigue siendo: corregir el mapa mutable del
+  PDF, probar backend y frontend, validar archivos reales, revisar visualmente los
+  documentos y después retirar el código antiguo y completar estilos.
+
+ESTADO AL CERRAR ESTA ENTRADA:
+- Bitácora acumulativa inicializada en este mismo archivo.
+- Todavía no se modificó código funcional del sistema.
+- Se espera confirmación del usuario para comenzar la corrección heredada o una
+  nueva indicación si desea priorizar otra parte del proyecto.
+
+-------------------------------------------------------------------------------
+ENTRADA 2026-06-18 — DEFINICIÓN DE REPORTES CONTEXTUALES Y PRÓXIMOS MÓDULOS
+-------------------------------------------------------------------------------
+
+PETICIÓN DEL USUARIO:
+El usuario confirmó que se debe continuar diseñando el sistema y corregir primero
+los reportes PDF y Excel. Aclaró que no quiere un único reporte general de
+inventario con varias áreas mezcladas. El reporte debe depender de la pestaña
+actual y contener exclusivamente la información visible o propia de esa sección.
+
+COMPORTAMIENTO DESEADO:
+- Productos: listado completo de productos.
+- Reposición: reporte de productos que requieren reposición.
+- Órdenes de compra: historial/listado de órdenes de compra.
+- Facturas de compra: transacciones de las facturas recibidas de suplidores.
+- Movimientos: historial de movimientos de inventario.
+- Conteos o ajustes físicos: reporte de conteos y ajustes realizados.
+- Suplidores: listado de suplidores.
+- Aplicar el mismo principio contextual a las demás secciones del sistema.
+- Excel debe ser un archivo XLSX real que abra correctamente.
+- PDF debe tener diseño empresarial moderno, legible y profesional.
+- No mezclar varios reportes en un solo archivo cuando el usuario está dentro de
+  una pestaña concreta.
+
+PRIORIDAD POSTERIOR A LOS REPORTES:
+1. Trabajar el módulo de cotizaciones.
+2. Trabajar empleados, usuarios y permisos.
+
+VISIÓN INICIAL DE PERMISOS:
+- Los empleados deben tener acceso únicamente a los módulos y acciones necesarios
+  para su función.
+- Ejemplo: almacén accede principalmente a inventario, sin necesidad de empleados
+  ni clientes.
+- Ejemplo: ventas no necesita acceso a contabilidad.
+- Los permisos deben poder distinguir qué puede ver y qué puede modificar o
+  ejecutar el empleado en cada área: punto de venta, historial de ventas,
+  inventario y demás módulos.
+- La definición fina de permisos se desarrollará poco a poco después de completar
+  los reportes y cotizaciones.
+
+DECISIÓN DE TRABAJO:
+Primero se auditarán e implementarán los reportes contextuales profesionales,
+incluyendo corrección del HTTP 500 del PDF, validación de XLSX y revisión visual.
+Después se continuará con cotizaciones y posteriormente con usuarios/permisos.
+
+-------------------------------------------------------------------------------
+ENTRADA 2026-06-18 — REPORTES CONTEXTUALES COMPLETADOS
+-------------------------------------------------------------------------------
+
+CAMBIO FUNCIONAL PRINCIPAL:
+La barra de reportes del módulo de inventario ahora cambia según la pestaña
+activa y genera un único documento de esa sección:
+- Productos -> catálogo completo de productos.
+- Reposición -> historial de órdenes de compra.
+- Facturas de compra -> facturas recibidas de suplidores.
+- Movimientos -> kardex de entradas, salidas, ventas, devoluciones y ajustes.
+- Conteo físico -> conteos, diferencias y ajustes aplicados.
+- Suplidores -> directorio de suplidores.
+
+FORMATOS:
+- Cada sección descarga XLSX, PDF y DOCX reales.
+- El control "Incluir costos" solo aparece en Productos y Movimientos, donde
+  realmente cambia las columnas del reporte.
+- Cada orden de compra conserva sus documentos individuales en XLSX, PDF y DOCX.
+- La impresión de una orden abre la ventana antes de esperar la descarga para
+  evitar el bloqueo de ventanas emergentes después de una operación asincrónica.
+
+BACKEND:
+- Se creó InventoryReportSection.java para validar y mapear las secciones.
+- Se añadieron endpoints:
+  GET /api/reports/inventory/{section}.xlsx
+  GET /api/reports/inventory/{section}.pdf
+  GET /api/reports/inventory/{section}.docx
+- Los endpoints antiguos /api/reports/inventory.* se conservaron por
+  compatibilidad, pero ahora entregan solamente el catálogo de productos.
+- BusinessReportService ahora usa también PurchaseInvoiceRepository y
+  SupplierRepository para los reportes correspondientes.
+- Se corrigió definitivamente el error original del PDF sustituyendo Map.of()
+  por HashMap mutable.
+- JasperReports 7 necesitaba sus módulos de compilación dentro del JAR de Spring
+  Boot. Se añadieron jasperreports-jdt 7.0.3 y ecj 3.39.0.
+- Se añadieron paginación, encabezados empresariales, separaciones de columnas,
+  tablas con líneas discretas, totales y orientación adecuada.
+
+EXCEL:
+- Se eliminó del frontend el generador XML antiguo que se nombraba .xls.
+- También se eliminaron exportInventoryExcel, spreadsheetWorksheet,
+  spreadsheetCell, exportInventoryPdf, createTextPdf y sus auxiliares.
+- Los archivos ahora se crean con Apache POI como XLSX reales.
+- Se sustituyeron colores indexados por colores RGB exactos para mantener el
+  diseño en Excel, LibreOffice y previsualizadores.
+- Los reportes incluyen encabezados, filtros, congelación de filas, formatos de
+  moneda/cantidad, alertas de stock bajo y anchos de columna controlados.
+
+FRONTEND:
+- La descripción y el nombre de archivo cambian con la pestaña activa.
+- .inventory-report-bar fue corregida para cinco columnas cuando hay control de
+  costos y cuatro cuando no lo hay.
+- Se añadieron estilos para .purchase-order-documents y versión adaptable.
+- TypeScript pasó sin errores.
+- Vite generó correctamente el build de producción usando su cargador alterno
+  de configuración, necesario por las restricciones de rutas de OneDrive en el
+  entorno de prueba.
+
+PRUEBAS REALIZADAS:
+- Maven test: correcto.
+- JAR de Spring Boot empaquetado correctamente.
+- Build web de producción: correcto.
+- Se descargaron y validaron 18 archivos contextuales:
+  6 secciones x XLSX/PDF/DOCX.
+- Todos los XLSX y DOCX comenzaron con firma PK.
+- Todos los PDF comenzaron con firma %PDF.
+- También se validó una orden real OC-20260618-00001 en los tres formatos.
+- Los siete XLSX se importaron, inspeccionaron y renderizaron correctamente.
+- No se encontraron errores de fórmulas.
+- Los siete PDF se renderizaron y revisaron visualmente.
+- Se corrigieron encabezados inicialmente pegados, como ITBIS/Estado y
+  Costo/Referencia. La revisión final mostró tablas legibles y sin cortes.
+
+LIMITACIÓN DE VERIFICACIÓN:
+El navegador integrado de Codex no pudo iniciar por un error de permisos de
+Windows al crear su proceso aislado. La interfaz se verificó mediante TypeScript,
+build de producción y revisión estática del comportamiento implementado, pero
+queda recomendable hacer un clic manual rápido en las seis pestañas cuando se
+abra normalmente el sistema.
+
+ARCHIVOS PRINCIPALES MODIFICADOS:
+- services/api/pom.xml
+- services/api/src/main/java/com/peraltapos/reporting/InventoryReportSection.java
+- services/api/src/main/java/com/peraltapos/reporting/BusinessReportController.java
+- services/api/src/main/java/com/peraltapos/reporting/BusinessReportService.java
+- apps/web/src/api/client.ts
+- apps/web/src/App.tsx
+- apps/web/src/styles.css
+
+SIGUIENTE PRIORIDAD ACORDADA:
+Continuar con el módulo de cotizaciones. Después, desarrollar empleados,
+usuarios, roles y permisos detallados por módulo y acción.
+
+-------------------------------------------------------------------------------
+ENTRADA 2026-06-19 — AVANCE DEL MÓDULO DE COTIZACIONES Y PAUSA SOLICITADA
+-------------------------------------------------------------------------------
+
+PETICIÓN DEL USUARIO:
+Después de terminar los reportes contextuales, el usuario había indicado
+continuar primero con cotizaciones y posteriormente con empleados, usuarios,
+roles y permisos. Durante el inicio de cotizaciones pidió pausar, registrar en
+esta bitácora todo lo realizado y continuar en otra ocasión.
+
+ESTADO PREVIO ENCONTRADO:
+- El backend ya contenía las entidades, repositorio, servicio y controlador de
+  cotizaciones:
+  Quote, QuoteItem, QuoteStatus, QuoteRequest, QuoteResponse, QuoteService,
+  QuoteRepository y QuoteController.
+- Ya existían operaciones para listar, consultar, crear y actualizar.
+- La base de datos ya tenía las tablas quotes y quote_items desde Flyway V1.
+- Flyway V2 ya había insertado una cotización demostrativa.
+- El frontend todavía mostraba cotizaciones estáticas únicamente en el panel
+  principal; la opción Cotizaciones del menú abría un marcador de posición.
+- No existían documentos PDF, Excel o Word de cotizaciones.
+
+IMPLEMENTACIÓN REALIZADA EN EL BACKEND:
+- BusinessReportService ahora recibe QuoteRepository.
+- Se añadieron generadores individuales para cotizaciones:
+  - quoteExcel(UUID quoteId)
+  - quotePdf(UUID quoteId)
+  - quoteWord(UUID quoteId)
+- Los documentos contienen:
+  - Número de cotización.
+  - Cliente y RNC/cédula.
+  - Fecha de emisión y fecha de validez.
+  - Estado.
+  - Productos, cantidades, precios, ITBIS, subtotales e importe total.
+  - Condiciones o notas.
+- Se añadieron los endpoints:
+  - GET /api/reports/quotes/{id}.xlsx
+  - GET /api/reports/quotes/{id}.pdf
+  - GET /api/reports/quotes/{id}.docx
+- El PDF reutiliza el diseño empresarial de los demás reportes.
+- El Excel utiliza Apache POI y el Word utiliza Apache POI XWPF.
+- Se añadieron auxiliares para localizar cotizaciones y traducir sus estados.
+- Se generalizaron los auxiliares internos de metadatos y totales de Excel para
+  soportar documentos con diferente cantidad de columnas.
+
+IMPLEMENTACIÓN REALIZADA EN EL FRONTEND:
+- Se añadieron en api/client.ts:
+  - Tipos QuoteStatus, Quote y QuoteRequest.
+  - getQuotes(...)
+  - createQuote(...)
+  - updateQuote(...)
+  - downloadQuoteReport(...)
+- Se creó QuotesView como módulo real conectado al backend.
+- El menú Cotizaciones ahora abre QuotesView en lugar del marcador de posición.
+- El formulario permite:
+  - Seleccionar un cliente registrado.
+  - Escribir un cliente no registrado.
+  - Indicar RNC o cédula.
+  - Definir fecha de emisión y fecha de validez.
+  - Elegir el estado.
+  - Seleccionar productos reales del catálogo.
+  - Escribir manualmente un producto o servicio.
+  - Cambiar cantidad, precio e ITBIS.
+  - Agregar o quitar líneas.
+  - Escribir condiciones y notas.
+  - Ver subtotal, ITBIS y total calculados en tiempo real.
+  - Crear una cotización.
+  - Editar una cotización existente.
+- El historial permite:
+  - Buscar por número o cliente.
+  - Editar.
+  - Marcar un borrador como enviado.
+  - Aprobar una cotización enviada.
+  - Cancelar una cotización.
+  - Imprimir.
+  - Descargar PDF, Excel y Word.
+- La impresión abre primero una ventana vacía para evitar el bloqueo del
+  navegador mientras espera el PDF.
+- Se añadieron indicadores para cantidad total, activas, aprobadas y valor de
+  cotizaciones activas.
+- Se añadieron estilos completos y adaptables para escritorio, tableta y móvil.
+- Los datos estáticos de cotizaciones del dashboard fueron renombrados a
+  dashboardQuotes para que no entren en conflicto con el nuevo estado real.
+
+ARCHIVOS MODIFICADOS DURANTE COTIZACIONES:
+- services/api/src/main/java/com/peraltapos/reporting/BusinessReportService.java
+- services/api/src/main/java/com/peraltapos/reporting/BusinessReportController.java
+- apps/web/src/api/client.ts
+- apps/web/src/App.tsx
+- apps/web/src/styles.css
+
+PRUEBAS COMPLETADAS HASTA LA PAUSA:
+- Maven test pasó correctamente.
+- El backend volvió a empaquetarse correctamente como JAR.
+- TypeScript pasó sin errores.
+- Vite generó correctamente el build web de producción.
+
+PENDIENTES ANTES DE DECLARAR COTIZACIONES TERMINADAS:
+- Probar los endpoints de documentos con la cotización demostrativa real y
+  confirmar firmas PK, %PDF y PK para XLSX, PDF y DOCX.
+- Renderizar y revisar visualmente el PDF y el Excel de cotización.
+- Probar por API la creación y actualización sin alterar innecesariamente los
+  datos existentes.
+- Hacer una revisión manual de la pantalla cuando el navegador integrado o el
+  navegador normal esté disponible.
+- Confirmar la política final de estados y transiciones.
+- Diseñar posteriormente la conversión de una cotización aprobada a venta; esa
+  conversión todavía no fue implementada.
+
+SIGUIENTE PASO AL RETOMAR:
+1. Terminar las pruebas reales y visuales de cotizaciones.
+2. Corregir cualquier detalle encontrado y cerrar el módulo.
+3. Continuar con empleados, usuarios, roles y permisos granulares por módulo y
+   acción, según la prioridad establecida por el usuario.
+
+---
+
+## 2026-06-25 - Continuación autorizada por el usuario
+
+MENSAJE DEL USUARIO:
+- “sigue haciendolo has todo lo que puedas{”
+
+INTERPRETACIÓN:
+- El usuario autorizó continuar de forma proactiva con el trabajo pendiente.
+- Se mantiene la regla principal de esta conversación: cada bloque importante
+  debe quedar registrado en esta bitácora para preservar continuidad.
+
+ORDEN DE TRABAJO ASUMIDO:
+1. Cerrar primero las pruebas pendientes de cotizaciones y documentos.
+2. Corregir cualquier defecto encontrado en PDF, Excel o Word.
+3. Si cotizaciones queda estable, avanzar todo lo posible con empleados,
+   usuarios, roles y permisos por módulo/acción.
+4. Actualizar esta bitácora con cambios, pruebas, resultados y pendientes.
+
+RESULTADO DEL BLOQUE DE COTIZACIONES / DOCUMENTOS:
+- Se levantó la API temporalmente contra MySQL local en el puerto 18080 para
+  probar la cotización demo real:
+  - ID: 30000000-0000-0000-0000-000000000001
+  - Número: COT-20260616-00001
+- Se descargaron los documentos reales de cotización:
+  - XLSX: firma PK correcta.
+  - PDF: firma %PDF correcta.
+  - DOCX: firma PK correcta.
+- Se renderizó el PDF a PNG con Poppler y se revisó visualmente:
+  - Encabezado, tabla, totales y pie se ven limpios.
+  - No se observaron textos encimados ni columnas pegadas.
+- Se importó y renderizó el XLSX con artifact-tool:
+  - No hubo errores de fórmulas.
+  - Se detectó que el RNC/cédula aparecía alineado a la derecha por tratarse
+    como valor numérico dentro de celdas combinadas.
+  - Se corrigió el estilo base de texto de Excel para forzar alineación
+    izquierda y formato texto.
+  - Se volvió a renderizar y el RNC/cédula quedó correctamente ubicado.
+- Se intentó renderizar el DOCX:
+  - Primero falló porque el documento no tenía propiedades de sección/página.
+  - Se corrigió la generación Word para agregar tamaño de página Letter,
+    márgenes y encabezado/pie.
+  - Luego la inspección encontró que las tablas no tenían tblGrid explícito.
+  - Se corrigió la generación Word para agregar geometría de columnas en las
+    tablas de metadata y tablas principales.
+  - La inspección estructural posterior confirmó:
+    - 2 tablas.
+    - metadata con 5 filas y 2 columnas.
+    - tabla de productos con 4 filas y 5 columnas.
+    - propiedades de sección presentes.
+    - tamaño de página y márgenes presentes.
+  - No se pudo hacer render visual final del DOCX porque el entorno no tiene
+    LibreOffice/soffice instalado. El fallo final fue únicamente por ejecutable
+    faltante, no por estructura del archivo.
+
+CAMBIOS TÉCNICOS REALIZADOS EN ESTE BLOQUE:
+- services/api/src/main/java/com/peraltapos/reporting/BusinessReportService.java
+  - El estilo Excel de texto ahora usa alineación izquierda y formato texto.
+  - Los DOCX ahora reciben configuración de página/márgenes.
+  - Las tablas DOCX ahora reciben tblGrid explícito para compatibilidad.
+
+VALIDACIONES COMPLETADAS:
+- mvn test: correcto.
+- mvn package -DskipTests: correcto, aunque Maven sigue imprimiendo la línea
+  conocida “Access is denied.” con código de salida 0.
+- npm exec -- tsc --noEmit: correcto.
+- npm exec -- vite build --configLoader runner: correcto.
+
+NOTAS DE ENTORNO:
+- /actuator/health devolvió error porque el proyecto tiene configuración de
+  management/health, pero no tiene dependencia spring-boot-starter-actuator.
+  Los endpoints /api sí funcionaron correctamente.
+- Para sostener la API durante pruebas se creó un lanzador temporal:
+  tmp/quote-validation/run-api.cmd
+- También se generaron archivos temporales de validación bajo:
+  tmp/quote-validation/
+
+ESTADO DESPUÉS DE ESTE BLOQUE:
+- Reportes de cotización XLSX/PDF/DOCX quedan generándose correctamente.
+- Excel y PDF fueron revisados visualmente.
+- Word quedó validado estructuralmente; queda pendiente una revisión visual en
+  una máquina con LibreOffice o Word.
+- Siguiente trabajo: avanzar empleados, usuarios, roles y permisos.
+
+---
+
+## 2026-06-25 - Avance en empleados, usuarios y permisos
+
+OBJETIVO:
+- Empezar el módulo de empleados de forma útil, no solo como pantalla
+  placeholder.
+- Preparar la base para que cada empleado pueda tener usuario de acceso y
+  permisos por módulo.
+
+BACKEND IMPLEMENTADO:
+- Se añadió migración:
+  - services/api/src/main/resources/db/migration/V9__employee_users_and_permissions.sql
+- Nuevas tablas:
+  - employee_user_accounts:
+    - empleado asociado.
+    - username único.
+    - password_hash BCrypt.
+    - usuario activo/inactivo.
+    - must_change_password.
+  - employee_permissions:
+    - empleado.
+    - module_key.
+    - access_level.
+    - único por empleado + módulo.
+- Permisos base agregados:
+  - POINT_OF_SALE
+  - SALES_HISTORY
+  - PRODUCTS
+  - REPLENISHMENT
+  - PURCHASES
+  - MOVEMENTS
+  - COUNTS
+  - ACCOUNTING
+  - CUSTOMERS
+  - SUPPLIERS
+  - QUOTES
+  - EMPLOYEES
+  - SETTINGS
+  - REPORTS
+- Niveles de acceso:
+  - NONE: sin acceso.
+  - READ: solo ver.
+  - WRITE: ver y editar.
+- Nuevas clases backend:
+  - EmployeeAccessLevel
+  - EmployeeAccessModule
+  - EmployeeUserAccount
+  - EmployeePermission
+  - EmployeePermissionRequest
+  - EmployeePermissionResponse
+  - EmployeeUserAccountRepository
+- Employee ahora se relaciona con:
+  - una cuenta de usuario opcional.
+  - una lista de permisos.
+- EmployeeRequest ahora acepta:
+  - username.
+  - password opcional.
+  - userActive.
+  - permissions.
+- EmployeeResponse ahora devuelve:
+  - username.
+  - userActive.
+  - permissions.
+- EmployeeService ahora:
+  - crea/actualiza cuenta de usuario si se indica username.
+  - exige contraseña temporal cuando se crea un usuario nuevo.
+  - mantiene la contraseña si se edita un usuario y el password viene vacío.
+  - guarda contraseña con BCrypt, no texto plano.
+  - valida username único.
+  - reemplaza la matriz de permisos enviada por frontend.
+- SecurityConfig ahora define PasswordEncoder BCrypt.
+
+FRONTEND IMPLEMENTADO:
+- api/client.ts ahora incluye:
+  - EmployeeAccessModule
+  - EmployeeAccessLevel
+  - EmployeePermission
+  - Employee
+  - EmployeeRequest
+  - getEmployees(...)
+  - createEmployee(...)
+  - updateEmployee(...)
+- App.tsx:
+  - el módulo Empleados ya no abre placeholder.
+  - se creó EmployeesView real.
+  - la pantalla permite:
+    - listar empleados.
+    - buscar por nombre/cédula/apellido.
+    - crear empleado.
+    - editar empleado.
+    - capturar datos laborales.
+    - crear usuario de acceso opcional.
+    - cambiar contraseña temporal si se escribe.
+    - activar/desactivar empleado.
+    - activar/desactivar usuario.
+    - asignar permiso por módulo: Sin acceso / Solo ver / Ver y editar.
+    - aplicar plantillas rápidas de permisos:
+      - Administrador.
+      - Caja / ventas.
+      - Almacén.
+      - Solo consulta.
+  - se renombró la lista estática del dashboard de employees a
+    dashboardEmployees para evitar conflicto con el nuevo módulo real.
+- styles.css:
+  - estilos para layout de empleados.
+  - formulario por secciones.
+  - matriz de permisos.
+  - responsive para móviles/tabletas.
+
+VALIDACIÓN RUNTIME:
+- Se levantó la API local contra MySQL real.
+- Flyway aplicó V9 correctamente.
+- GET /api/employees respondió correctamente.
+- Resultado observado:
+  - Ana Peralta: 14 permisos WRITE.
+  - Luis Mateo: 6 permisos, 3 WRITE y 3 READ.
+  - Rosa Jimenez: 6 permisos, 4 WRITE y 2 READ.
+- No se crearon empleados de prueba para no ensuciar la base local.
+
+VALIDACIONES TÉCNICAS:
+- mvn test: correcto.
+- mvn package -DskipTests: correcto, con la línea conocida “Access is denied.”
+  pero código de salida 0.
+- npm exec -- tsc --noEmit: correcto.
+- npm exec -- vite build --configLoader runner: correcto.
+- Después de agregar plantillas rápidas de permisos, se volvió a ejecutar:
+  - mvn test: correcto.
+  - npm exec -- tsc --noEmit: correcto.
+  - npm exec -- vite build --configLoader runner: correcto.
+
+SEGURIDAD / LIMPIEZA:
+- Spring imprimió una contraseña temporal de desarrollo en el log de arranque.
+- Se eliminó tmp/quote-validation/api.out.log y api.err.log para no dejar esa
+  contraseña guardada en el proyecto.
+- Se confirmó con búsqueda que no queda la contraseña temporal de Spring en
+  tmp, services, apps ni docs.
+
+PENDIENTES DEL MÓDULO EMPLEADOS/PERMISOS:
+- Probar visualmente la pantalla en navegador real.
+- Implementar login real.
+- Aplicar los permisos a navegación y endpoints API.
+- Definir si READ/WRITE será suficiente o si se agregarán permisos especiales
+  como imprimir, exportar, cancelar, aprobar, descuentos o ver costos.
+- Decidir si los usuarios creados deben cambiar contraseña en el primer inicio.
+
+ESTADO FINAL DE ESTE TURNO:
+- Cotizaciones/reportes quedaron corregidos y validados.
+- Empleados ya tiene pantalla real conectada al backend.
+- Usuarios y permisos ya tienen base persistente y UI de administración.
+- La aplicación todavía no bloquea módulos/endpoints según esos permisos; eso es
+  la próxima fase lógica.
+
+---
+
+## 2026-06-25 - Pedido: backend automático
+
+MENSAJE DEL USUARIO:
+- “NO PUEDES PONER EL BACKEND QUE CORRA AUTOMATICO ?”
+
+INTERPRETACIÓN:
+- El usuario quiere no tener que arrancar manualmente el backend con
+  `dev:api`.
+- Se trabajará para que los scripts de desarrollo web/escritorio levanten el
+  backend automáticamente si no está corriendo.
+- Se usará el endpoint existente `/api/health` para detectar si la API ya está
+  viva.
+
+IMPLEMENTADO:
+- Se creó:
+  - scripts/dev-api-tools.ps1
+- Este script define helpers para:
+  - localizar Maven automáticamente.
+  - comprobar si la API responde en /api/health.
+  - arrancar el backend en segundo plano si no está vivo.
+  - esperar hasta que el backend esté listo.
+  - detener el backend automático cuando se cierra el script que lo arrancó.
+- Se modificó:
+  - scripts/dev-web.ps1
+- Ahora `dev-web.ps1`:
+  1. arranca el backend automáticamente en http://127.0.0.1:8080 si hace falta.
+  2. espera a que /api/health responda.
+  3. compila la web con Vite usando `--configLoader runner`.
+  4. sirve la web en http://127.0.0.1:5173.
+  5. al cerrar, detiene el backend si fue ese script quien lo inició.
+- Se modificó:
+  - apps/desktop/src-tauri/tauri.conf.json
+- Ahora `npm run dev:desktop` también usa el mismo arranque automático durante
+  desarrollo.
+- Se modificó:
+  - package.json
+- Se agregó:
+  - `npm run dev`
+- Ese comando ahora es el camino recomendado para levantar web + backend.
+- Se actualizó README.md con las nuevas instrucciones.
+
+VALIDACIÓN:
+- Se probó Start-PeraltaApi manualmente:
+  - arrancó el backend.
+  - GET http://127.0.0.1:8080/api/health devolvió success=true.
+  - se detuvo el backend automático.
+  - se confirmó que el puerto quedó apagado.
+  - se confirmó que no quedó proceso Java vivo.
+- Se confirmó que no quedaron logs con la contraseña temporal generada por
+  Spring.
+- Validaciones finales:
+  - package.json válido.
+  - tauri.conf.json válido.
+  - npm exec -- tsc --noEmit: correcto.
+  - npm exec -- vite build --configLoader runner: correcto.
+
+USO DESDE AHORA:
+- Para web con backend automático:
+  - npm run dev
+  - o npm run dev:web
+- Para app escritorio en desarrollo con backend automático:
+  - npm run dev:desktop
+- `npm run dev:api` queda disponible si algún día se quiere arrancar solo el
+  backend manualmente.
+
+NOTA:
+- Esto automatiza el backend para desarrollo.
+- La versión final instalada/escritorio todavía requerirá una fase aparte si se
+  quiere empaquetar backend Java como sidecar junto con Tauri.
+
+---
+
+## 2026-06-25 - Continuación autorizada: seguir programando
+
+MENSAJE DEL USUARIO:
+- “OKY TODO BIEN PUEDES SEGUIR PROGRAMANDO”
+
+INTERPRETACIÓN:
+- El usuario autoriza continuar con el siguiente pendiente lógico.
+- Como ya existen empleados, usuarios y permisos en base/UI, el siguiente paso
+  será convertir eso en acceso real:
+  - login.
+  - sesión/token.
+  - usuarios demo iniciales para no dejar el sistema bloqueado.
+  - navegación filtrada por permisos.
+  - preparación del backend para exigir autenticación.
+
+## 2026-06-26 - Continuación explícita
+
+MENSAJE DEL USUARIO:
+- “CONTINUA”
+
+INTERPRETACIÓN:
+- Continuar el trabajo iniciado de login real, sesión y permisos.
+- Ya se había creado V10 para sembrar usuarios demo con contraseña temporal.
+- Se continuará hasta dejar backend y frontend validables.
+
+---
+
+## 2026-06-26 - Bloque completado: login real y permisos
+
+MENSAJE DEL USUARIO:
+- "CONTINUA"
+
+INTERPRETACION:
+- Continuar despues del arranque automatico del backend.
+- El siguiente pendiente era convertir empleados/permisos en acceso real al sistema.
+
+TRABAJO REALIZADO:
+- Se completo el login real del backend:
+  - POST /api/auth/login.
+  - GET /api/auth/me.
+  - POST /api/auth/logout como salida estateless/no-op.
+- Se agrego sesion por token firmado con HMAC.
+- Se agrego bloqueo real por permisos en backend:
+  - sin token, /api/** responde 401.
+  - sin permiso del modulo, responde 403.
+- Se protegen productos, empleados, clientes, cotizaciones, ventas, historial,
+  movimientos, conteos, reposicion, compras, suplidores, reportes y ajustes.
+- Se corrigio la migracion V10 para sembrar usuarios demo de forma segura en MySQL.
+- Usuarios demo:
+  - ana.peralta / Peralta123! / administradora.
+  - luis.mateo / Peralta123! / caja y ventas.
+  - rosa.jimenez / Peralta123! / almacen.
+- Se agrego pantalla de login al frontend.
+- Se guarda/restaura sesion con token local.
+- El menu principal se filtra segun permisos.
+- En inventario se filtran pestanas internas segun permisos:
+  - productos.
+  - reposicion.
+  - facturas de compra.
+  - movimientos.
+  - conteo fisico.
+  - suplidores.
+- Nueva venta solo aparece si el usuario puede escribir en punto de venta.
+- Exportaciones de inventario quedan deshabilitadas si el usuario no tiene REPORTS.
+- Se actualizo README.md con usuarios demo.
+- Se eliminaron temporales GenerateBCrypt.java y GenerateBCrypt.class.
+
+VALIDACION:
+- mvn -q -f services/api/pom.xml test: correcto.
+- mvn -q -f services/api/pom.xml -DskipTests package: correcto.
+- npm exec -- tsc --noEmit: correcto.
+- npm exec -- vite build --configLoader runner: correcto.
+- Prueba real contra API local actualizada:
+  - GET /api/products sin token => 401.
+  - Ana GET /api/employees => 200.
+  - Luis GET /api/products => 200.
+  - Luis GET /api/employees => 403.
+  - Luis POST /api/employees => 403.
+  - Rosa GET /api/customers => 403.
+- Se confirmo que no quedo Java vivo despues de la prueba.
+- Se confirmo que no quedaron archivos GenerateBCrypt.
+- Se busco texto de contrasena generada de Spring en tmp/services/apps/docs y no
+  hubo coincidencias.
+
+NOTAS:
+- Durante la prueba habia un backend viejo encendido desde el 2026-06-25. No
+  conocia /api/auth/login y por eso devolvia 500. Se apagaron esos Java viejos y
+  luego se probo con backend limpio y actualizado.
+- La clave Peralta123! es temporal/demo.
+
+PENDIENTE:
+- Agregar cambio obligatorio de contrasena cuando mustChangePassword sea true.
+- Ocultar/deshabilitar todos los botones internos de escritura segun WRITE.
+- Seguir con facturacion, contabilidad, cotizaciones o empleados segun la proxima
+  prioridad del usuario.
+
+---
+
+## 2026-06-27 - Recordatorio: como prender el backend
+
+MENSAJE DEL USUARIO:
+- "como prendo el backporque no me acuerdo"
+
+RESPUESTA / CONTEXTO:
+- Para prender web + backend automatico desde la carpeta del proyecto:
+  - npm run dev
+- Para prender solo el backend:
+  - npm run dev:api
+- Para desarrollo de escritorio/Tauri con backend automatico:
+  - npm run dev:desktop
+
+---
+
+## 2026-06-27 - Nuevas prioridades: facturacion RD, empresa, contabilidad, permisos y despliegue
+
+MENSAJE DEL USUARIO:
+- Cuando una cotizacion quede aprobada debe tener boton "Facturar".
+- Esa factura debe enviarse/generarse con comprobante fiscal para la empresa.
+- La factura debe verse mas o menos con el mismo formato bonito de la pagina.
+- Debe existir un apartado para cambiar los datos de la empresa que utiliza el
+  sistema para adaptarlo mas facil.
+- El modulo "Facturacion RD" sigue como pendiente y debe prepararse para
+  facturacion electronica de Republica Dominicana.
+- El modulo "Contabilidad" debe ser completo; el usuario observa que aun no se ha
+  avanzado.
+- El modulo "Reportes" como modulo separado probablemente debe eliminarse si cada
+  modulo ya genera sus propios PDF/Excel.
+- Falta seguir puliendo crear usuarios y gestionar permisos:
+  - seleccionar un modulo completo, por ejemplo Inventario.
+  - o dar permisos especificos dentro de ese modulo.
+- Mas adelante hay que crear ejecutables web/local:
+  - empleados trabajando en desktop.
+  - dueno/directivos entrando desde web o telefono.
+  - permiso adicional para decidir si un usuario puede entrar por web.
+- Mas adelante, cuando el programa este completo, se quiere una ventana/programa
+  aparte para administrar licencia, limites como cantidad de usuarios, etc.
+
+INTERPRETACION:
+- Prioridad tecnica inmediata:
+  1. Configuracion de empresa.
+  2. Facturar cotizacion aprobada.
+  3. Factura fiscal con NCF y base preparada para e-CF/RD.
+  4. Ajustar navegacion/reportes para que cada modulo exporte lo suyo.
+  5. Mejorar permisos por grupos/modulos y permisos especificos.
+- Contabilidad y facturacion electronica son modulos grandes y deben construirse
+  por fases, no como simple placeholder.
+
+TRABAJO REALIZADO EN ESTE BLOQUE:
+- Se agrego migracion V11:
+  - quote_items.product_id para vincular lineas de cotizacion con productos reales.
+  - quotes.converted_sale_id y converted_at para saber si una cotizacion ya fue facturada.
+  - sales.fiscal_document_type, source_quote_id y campos base de e-CF:
+    - ecf_status.
+    - ecf_track_id.
+    - ecf_security_code.
+    - ecf_signed_xml_path.
+  - employee_user_accounts.allow_web_access para poder bloquear acceso web/movil por usuario.
+- Se creo base backend de Facturacion RD:
+  - FiscalDocumentType.
+  - EcfStatus.
+  - NcfSequence.
+  - NcfService.
+  - BillingController.
+  - endpoint GET /api/billing/ncf-sequences.
+- Se creo configuracion real de empresa:
+  - Company.
+  - CompanyRepository.
+  - CompanyRequest.
+  - CompanyResponse.
+  - CompanyService.
+  - CompanyController.
+  - endpoints:
+    - GET /api/company/profile.
+    - PUT /api/company/profile.
+- Se implemento facturar cotizacion aprobada:
+  - endpoint POST /api/quotes/{id}/invoice.
+  - Solo permite facturar cotizaciones APPROVED.
+  - Evita facturar dos veces la misma cotizacion.
+  - Genera venta/factura.
+  - Genera NCF usando secuencia activa.
+  - Detecta tipo fiscal:
+    - CREDITO_FISCAL si el cliente/RNC corresponde.
+    - CONSUMO si corresponde consumidor final.
+  - Descuenta inventario.
+  - Marca la cotizacion como CONVERTED.
+  - Crea cuenta por cobrar si sale a credito.
+- Se mejoro el frontend:
+  - Se elimino Reportes como modulo separado del menu.
+  - Los reportes se mantienen dentro de cada modulo.
+  - Se agrego boton "Facturar" en cotizaciones aprobadas.
+  - Al facturar se imprime factura usando datos configurables de empresa.
+  - Factura muestra NCF y estado e-CF preparado.
+  - Se agrego pantalla Facturacion RD con secuencias NCF activas.
+  - Se agrego pantalla Contabilidad con resumen real:
+    - cuentas por cobrar.
+    - cuentas por pagar.
+    - posicion neta.
+  - Se agrego pantalla Configuracion/Datos de empresa.
+  - Empleados ahora incluyen permiso "Puede entrar por web/movil".
+  - Permisos de empleado ahora tienen atajos:
+    - Inventario completo.
+    - Inventario solo ver.
+    - y aun permiten ajustar permisos especificos.
+
+VALIDACION:
+- Backend:
+  - mvn -q -f services/api/pom.xml -DskipTests package: correcto.
+- Frontend:
+  - npm exec -- tsc --noEmit: correcto.
+  - npm exec -- vite build --configLoader runner: correcto.
+- Prueba real contra API actualizada:
+  - GET /api/company/profile con Ana => 200.
+  - GET /api/billing/ncf-sequences con Ana => 200.
+  - GET /api/accounting/summary con Ana => 200.
+  - Se creo cotizacion aprobada de prueba.
+  - POST /api/quotes/{id}/invoice genero factura:
+    - InvoiceNumber: FAC-20260626-00005.
+    - NCF: B0100000001.
+    - FiscalType: CREDITO_FISCAL.
+    - EcfStatus: NOT_SUBMITTED.
+- Se confirmo que no quedo proceso Java vivo despues de la prueba.
+- Se confirmo que no quedaron restos de contrasena generada por Spring.
+
+NOTAS:
+- Facturacion electronica RD aun no esta terminada legalmente:
+  - falta XML e-CF oficial.
+  - firma digital/certificado.
+  - envio DGII.
+  - trackId/respuesta/acuse.
+  - representacion impresa e-CF final.
+- Pero la base del sistema ya queda preparada con NCF, tipo fiscal y estado e-CF.
+- Contabilidad ya no queda como placeholder, pero sigue pendiente hacerla completa:
+  - catalogo de cuentas.
+  - asientos contables.
+  - diario general.
+  - mayor general.
+  - cierres.
+  - reportes fiscales 606/607/608.
+
+PENDIENTE SIGUIENTE:
+- Pulir Facturacion RD con administracion de secuencias NCF desde UI.
+- Completar contabilidad formal.
+- Deshabilitar botones internos segun permisos WRITE.
+- Preparar empaquetado desktop y despliegue web/movil.
+- Disenar modulo/licencia externa para limites de usuarios cuando el sistema este completo.
+
+---
+
+## 2026-06-27 - Continuacion corta
+
+MENSAJE DEL USUARIO:
+- "dael"
+
+INTERPRETACION:
+- El usuario quiso decir "dale": continuar y cerrar el bloque.
+
+---
+
+## 2026-06-27 - Nueva correccion: e-CF simulado y contabilidad seria tipo Odoo
+
+MENSAJE DEL USUARIO:
+- El usuario pregunta si no es posible dejar preparada la facturacion electronica
+  aunque no sea legal/oficial todavia:
+  - generar documento e-CF.
+  - generar firma digital simulada o de prueba.
+  - dejar estructura de envio a DGII.
+  - guardar acuse/respuesta.
+  - dejar pendiente solo la conexion real/certificado oficial cuando se instale
+    en una empresa.
+- El usuario tambien observa que el modulo de contabilidad creado no es una
+  contabilidad real, sino cuentas por cobrar y pagar.
+- Pide investigar y nutrirse de un modulo como Odoo para hacer contabilidad en
+  condiciones.
+
+INTERPRETACION:
+- Hay que mejorar Facturacion RD para tener un flujo tecnico de e-CF simulado:
+  XML, firma/hash de prueba, envio simulado y acuse guardado.
+- Hay que rehacer/expandir Contabilidad hacia estructura real:
+  catalogo de cuentas, diarios, asientos, lineas contables, debitos/creditos,
+  balance y trazabilidad desde ventas/compras.
+
+TRABAJO REALIZADO:
+- Se uso como referencia conceptual la contabilidad tipo ERP/Odoo:
+  - catalogo de cuentas.
+  - diarios.
+  - asientos contables.
+  - lineas con debito y credito.
+  - balance de comprobacion.
+- Se agrego migracion V12:
+  - fiscal_ecf_documents.
+  - accounting_accounts.
+  - accounting_journals.
+  - accounting_entries.
+  - accounting_entry_lines.
+  - cuentas contables base.
+  - diarios base: ventas, compras, caja, banco y operaciones varias.
+- Facturacion RD ahora tiene flujo e-CF simulado:
+  - genera XML e-CF de prueba.
+  - genera hash SHA-256.
+  - agrega firma simulada no valida legalmente.
+  - guarda XML firmado en base de datos.
+  - simula envio DGII.
+  - genera TrackId simulado.
+  - genera codigo de seguridad simulado.
+  - guarda acuse XML simulado.
+  - actualiza estado de factura a SIGNED o ACCEPTED.
+- Nuevos endpoints:
+  - POST /api/billing/ecf/sales/{saleId}/generate.
+  - POST /api/billing/ecf/sales/{saleId}/submit-simulated.
+  - GET /api/billing/ecf/sales/{saleId}.
+- Contabilidad ahora tiene base real:
+  - Catalogo de cuentas.
+  - Diarios contables.
+  - Asientos contables.
+  - Lineas de asiento.
+  - Balance de comprobacion.
+  - Las ventas crean automaticamente asiento contable balanceado.
+- Nuevos endpoints:
+  - GET /api/accounting/accounts.
+  - GET /api/accounting/journals.
+  - GET /api/accounting/entries.
+  - GET /api/accounting/trial-balance.
+- Se actualizo la pantalla Facturacion RD:
+  - muestra secuencias NCF.
+  - muestra facturas recientes.
+  - boton Generar XML.
+  - boton Enviar simulado.
+  - muestra estado e-CF, TrackId y codigo.
+- Se actualizo la pantalla Contabilidad:
+  - Resumen.
+  - Catalogo.
+  - Diarios.
+  - Asientos.
+  - Balance.
+
+NOTA IMPORTANTE:
+- La firma e-CF implementada es simulada y queda marcada como no valida
+  legalmente.
+- Esto deja el flujo preparado para sustituir la firma simulada por certificado
+  real y la llamada simulada por envio real DGII cuando se tenga la integracion
+  oficial.
+
+VALIDACION:
+- Backend:
+  - mvn -q -f services/api/pom.xml -DskipTests package: correcto.
+- Frontend:
+  - npm exec -- tsc --noEmit: correcto.
+  - npm exec -- vite build --configLoader runner: correcto.
+- Prueba real contra API actualizada:
+  - Login con ana.peralta: correcto.
+  - GET /api/accounting/accounts: 13 cuentas.
+  - GET /api/accounting/journals: 5 diarios.
+  - Se creo factura de prueba:
+    - InvoiceNumber: FAC-20260626-00007.
+    - NCF: B0100000003.
+  - POST /api/billing/ecf/sales/{saleId}/generate:
+    - estado SIGNED.
+  - POST /api/billing/ecf/sales/{saleId}/submit-simulated:
+    - estado ACCEPTED.
+    - TrackId: SIM-DGII-20260626231658-E0304DF1.
+    - SecurityCode: DE0A73D20987.
+  - GET /api/accounting/entries:
+    - 1 asiento contable automatico.
+  - GET /api/accounting/trial-balance:
+    - 3 lineas de balance.
+- Se confirmo que no quedo Java vivo despues de la prueba.
+- Se confirmo que no quedaron restos del aviso automatico de clave temporal de Spring.
+
+PENDIENTE SIGUIENTE:
+- Completar entradas contables automaticas para compras y gastos.
+- Agregar mayor general, estado de resultados y balance general.
+- Agregar exportacion PDF/Excel bonita para Contabilidad.
+- Preparar reemplazo de firma simulada por certificado digital real.
+- Preparar conector DGII real y almacenamiento de acuses oficiales.
+
+---
+
+## 2026-06-27 - Contabilidad operativa para contable y aclaracion DGII real
+
+MENSAJE DEL USUARIO:
+- El usuario aclara que el modulo de contabilidad seguia pareciendo estatico:
+  - cuentas por cobrar/pagar sin boton para pagar/cobrar.
+  - no habia conciliacion ni registro de pagos.
+  - catalogo y diarios no se podian editar.
+  - asientos y balance se veian como listas sin operacion real.
+- Pide nutrirse mejor de lo que trae un ERP contable.
+- Pregunta que haria falta para que el e-CF simulado se envie automaticamente
+  a DGII de forma real.
+
+TRABAJO REALIZADO:
+- Se agrego migracion V13:
+  - accounting_payments.
+  - historial de cobros/pagos contra cuentas por cobrar o pagar.
+- Cuentas por cobrar:
+  - ahora aceptan pagos parciales o totales.
+  - actualizan balance.
+  - cambian estado a PARTIAL o PAID.
+  - generan asiento automatico:
+    - debito caja/banco/tarjeta.
+    - credito cuentas por cobrar.
+- Cuentas por pagar:
+  - ahora aceptan pagos parciales o totales.
+  - actualizan balance.
+  - cambian estado a PARTIAL o PAID.
+  - generan asiento automatico:
+    - debito cuentas por pagar.
+    - credito caja/banco.
+- Compras:
+  - al registrar factura de compra ahora se genera asiento automatico:
+    - debito inventario.
+    - debito ITBIS adelantado.
+    - credito cuentas por pagar si es credito.
+    - credito caja si es contado.
+- Catalogo contable:
+  - se agregaron endpoints para crear y editar cuentas contables.
+  - la pantalla permite crear/editar codigo, nombre, tipo, balance normal,
+    conciliable y estado.
+- Diarios:
+  - se agregaron endpoints para crear y editar diarios.
+  - la pantalla permite crear/editar codigo, nombre, tipo y estado.
+- Asientos manuales:
+  - se agrego endpoint para postear asiento manual.
+  - la pantalla permite seleccionar diario, fecha, referencia, nota y lineas.
+  - valida que debitos y creditos cuadren antes de postear.
+- Pagos:
+  - se agrego pantalla/historial de pagos conciliados.
+  - se agrego formulario de Registrar cobro / Registrar pago desde las cuentas.
+- Reportes:
+  - balance ahora incluye balance de comprobacion y resumen rapido de:
+    - ingresos.
+    - gastos.
+    - resultado.
+    - activos.
+    - pasivos.
+    - capital.
+
+VALIDACION:
+- Backend:
+  - mvn -q -f services/api/pom.xml -DskipTests package: correcto.
+- Frontend:
+  - npm exec -- tsc --noEmit: correcto.
+  - npm exec -- vite build --configLoader runner: correcto.
+- Prueba real contra API actualizada:
+  - se creo venta a credito:
+    - FAC-20260627-00009.
+  - se registro cobro parcial:
+    - 16.52.
+  - se creo factura de compra a credito:
+    - TEST-CONT-20260627000619.
+  - se registro pago parcial:
+    - 10.03.
+  - se creo asiento manual:
+    - AST-20260627-00007.
+  - GET /api/accounting/payments:
+    - 2 pagos conciliados.
+  - GET /api/accounting/entries:
+    - 7 asientos.
+  - GET /api/accounting/trial-balance:
+    - 9 lineas.
+- Se confirmo que no quedo Java vivo despues de la prueba.
+- Se confirmo que no quedaron restos del aviso automatico de clave temporal
+  de Spring.
+
+ACLARACION DGII:
+- Lo implementado de e-CF es simulacion tecnica local.
+- Para envio real a DGII se necesita:
+  - empresa registrada/autorizada como emisor electronico.
+  - certificado digital tributario valido.
+  - XML e-CF con estructura oficial vigente.
+  - firma XML/XAdES real.
+  - pasar certificacion/homologacion DGII.
+  - configurar endpoints/credenciales reales que DGII habilite al emisor.
+  - guardar acuses oficiales devueltos por DGII.
+
+---
+
+## 2026-06-27 - Estilo de botones
+
+MENSAJE DEL USUARIO:
+- "ok ahora dale estilo a los botones"
+
+TRABAJO REALIZADO:
+- Se actualizo el CSS global de botones:
+  - botones primarios con gradiente verde, sombra suave y hover moderno.
+  - botones secundarios con fondo claro, borde, sombra sutil y hover.
+  - botones icono y botones segmentados con estilo consistente.
+  - focus visible para accesibilidad.
+  - estado disabled mas claro.
+  - acciones en tablas/filas con forma tipo pill.
+  - botones de tabs de inventario/contabilidad mas modernos.
+  - botones de cantidad del POS con hover y sombra.
+  - boton grande de cobrar en POS con mayor presencia.
+- No se cambio logica del sistema, solo estilos.
+
+VALIDACION:
+- Frontend:
+  - npm exec -- vite build --configLoader runner: correcto.
+
+---
+
+## 2026-06-27 - Login mas profesional y comandos GitHub
+
+MENSAJE DEL USUARIO:
+- Pide corregir que los usuarios demo salen visibles/afuera en el login para
+  que se vea mas profesional.
+- Pide el comando para subir el proyecto a GitHub.
+
+TRABAJO REALIZADO:
+- Se cambio el placeholder del usuario en login de una cuenta demo especifica a
+  "usuario".
+- Las cuentas demo ya no quedan como lista abierta debajo del formulario.
+- Ahora estan dentro de un bloque desplegable discreto:
+  - "Accesos de prueba".
+  - cada cuenta muestra nombre y rol.
+  - la clave temporal queda oculta hasta abrir el bloque.
+- Se ajusto el estilo CSS de ese bloque para verse integrado al login.
+
+VALIDACION:
+- Frontend:
+  - npm exec -- tsc --noEmit: correcto.
+  - npm exec -- vite build --configLoader runner: correcto.
+
+NOTA GIT:
+- Al ejecutar git status en la carpeta del proyecto, Git respondio que no es
+  repositorio.
+- Existe una carpeta .git, pero parece no estar inicializada correctamente o no
+  ser reconocida por Git.
+
+---
+
+## 2026-06-27 - README para GitHub
+
+MENSAJE DEL USUARIO:
+- "ademe el readme"
+
+INTERPRETACION:
+- El usuario pidio un README actualizado para publicar/subir el proyecto a
+  GitHub.
+
+TRABAJO REALIZADO:
+- Se reemplazo README.md por una version mas completa y presentable.
+- El README ahora incluye:
+  - descripcion general del sistema.
+  - funciones principales.
+  - POS.
+  - inventario.
+  - clientes/suplidores.
+  - cotizaciones.
+  - Facturacion RD.
+  - contabilidad operativa.
+  - empleados y permisos.
+  - configuracion de empresa.
+  - stack tecnico.
+  - estructura del proyecto.
+  - requisitos.
+  - instalacion.
+  - comandos de desarrollo.
+  - usuarios demo.
+  - build.
+  - nota sobre facturacion electronica DGII real.
+  - comandos para subir a GitHub.
+  - estado actual y pendientes.
+
+VALIDACION:
+- Se reviso que el README contenga las secciones clave.
+- Frontend:
+  - npm exec -- vite build --configLoader runner: correcto.
+
+---
+
+## 2026-06-27 - Error Git dubious ownership
+
+MENSAJE DEL USUARIO:
+- Al intentar hacer git add/commit/push, Git mostro:
+  - detected dubious ownership.
+  - el repo aparece como propiedad de PC/CodexSandboxOffline.
+  - el usuario actual es PC/peral.
+
+INTERPRETACION:
+- Es un bloqueo de seguridad de Git porque el repositorio fue creado o tocado
+  por otro usuario interno del entorno.
+- Se resuelve agregando esta carpeta como safe.directory para Git.
+
+ACCION RECOMENDADA:
+- Ejecutar:
+  git config --global --add safe.directory 'C:/Users/peral/OneDrive/Escritorio/Proyectos Portafolio/peralta-pos'
+- Luego repetir git add, commit, remote y push.

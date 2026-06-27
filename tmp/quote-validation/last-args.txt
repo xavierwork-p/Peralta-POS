@@ -1,0 +1,1 @@
+"-Dserver.port=18080" "-Dapp.dgii.rnc.auto-sync-enabled=false" "-Dspring.main.banner-mode=off" -jar "C:\Users\peral\OneDrive\Escritorio\Proyectos Portafolio\peralta-pos\services\api\target\peralta-pos-api-0.1.0.jar"

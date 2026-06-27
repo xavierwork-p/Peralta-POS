@@ -1,0 +1,22 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: peralta-pos-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: peralta_pos
+      MYSQL_USER: peralta
+      MYSQL_PASSWORD: peralta123
+      MYSQL_ROOT_PASSWORD: root123
+    ports:
+      - "3306:3306"
+    volumes:
+      - peralta_pos_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "peralta", "-pperalta123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  peralta_pos_mysql_data:

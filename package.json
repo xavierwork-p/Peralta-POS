@@ -1,0 +1,20 @@
+{
+  "name": "peralta-pos",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Sistema web y escritorio de punto de venta para Peralta POS.",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File scripts/dev-web.ps1",
+    "install:web": "npm --prefix apps/web install",
+    "install:desktop": "npm --prefix apps/desktop install",
+    "db:up": "docker compose up -d mysql",
+    "db:down": "docker compose down",
+    "dev:web": "powershell -ExecutionPolicy Bypass -File scripts/dev-web.ps1",
+    "build:web": "powershell -ExecutionPolicy Bypass -File scripts/build-web.ps1",
+    "dev:desktop": "npm --prefix apps/desktop run tauri:dev",
+    "build:desktop": "npm --prefix apps/desktop run tauri:build",
+    "dev:api": "mvn -f services/api/pom.xml spring-boot:run",
+    "test:api": "mvn -f services/api/pom.xml test",
+    "sync:dgii-rnc": "powershell -ExecutionPolicy Bypass -File scripts/sync-dgii-rnc.ps1"
+  }
+}
