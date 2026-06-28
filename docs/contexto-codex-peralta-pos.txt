@@ -1827,3 +1827,26 @@ VALIDACION:
 PENDIENTE:
 - Hacer commit y push para que Vercel/Render redeployen.
 - Cuando Render termine el redeploy, probar login con el usuario admin demo.
+
+DESPLIEGUE Y VALIDACION ONLINE:
+- Commit creado:
+  `6c860cb Ocultar usuarios demo del login y agregar admin`.
+- Push realizado a GitHub `main`.
+- Render redeployo el backend y aplico la migracion.
+- Login online probado:
+  - usuario `admin`.
+  - HTTP 200.
+  - `success=true`.
+  - nombre: `Admin Sistema`.
+  - `allowWebAccess=true`.
+  - permisos: 14 modulos.
+  - token recibido, no se mostro ni se guardo.
+- Vercel redeployo el frontend.
+- Se verifico el bundle publicado:
+  - no contiene `Accesos de prueba`.
+  - no contiene la clave demo anterior.
+  - no contiene usuarios demo visibles como `ana.peralta`.
+
+ESTADO:
+- La app online ya tiene login limpio sin usuarios visibles.
+- El usuario admin demo esta funcionando.
