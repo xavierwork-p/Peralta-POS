@@ -318,22 +318,31 @@ En este entorno:
 
 ## Despliegue web y escritorio
 
-La ruta recomendada para publicar el sistema es:
+La ruta recomendada para publicar el sistema gratis como demo es:
 
 ```text
-GitHub -> Railway backend/MySQL -> Vercel frontend -> Windows launcher/instalador
+GitHub -> Aiven MySQL -> Render backend -> Vercel frontend -> Windows launcher/instalador
 ```
 
 Archivos ya preparados:
 
+- `Dockerfile`
+- `render.yaml`
 - `railway.json`
 - `nixpacks.toml`
 - `apps/web/vercel.json`
 - `apps/web/.env.production.example`
 - `apps/web/.env.desktop.example`
+- `services/api/src/main/resources/application-render.yml`
 - `services/api/src/main/resources/application-railway.yml`
 
-Guia completa:
+Guia recomendada gratis:
+
+```text
+docs/despliegue-gratis-vercel-render-aiven.md
+```
+
+Guia alternativa con Railway:
 
 ```text
 docs/despliegue-web-y-escritorio.md
@@ -342,13 +351,17 @@ docs/despliegue-web-y-escritorio.md
 Variables principales:
 
 ```text
-Railway backend:
-SPRING_PROFILES_ACTIVE=railway
+Render backend:
+SPRING_PROFILES_ACTIVE=render
 JWT_SECRET=poner-una-clave-larga-y-segura
 CORS_ALLOWED_ORIGINS=https://tu-frontend.vercel.app,tauri://localhost
+DGII_RNC_AUTO_SYNC_ENABLED=false
+DB_URL=jdbc:mysql://HOST:PORT/defaultdb?sslMode=REQUIRED&serverTimezone=UTC&allowPublicKeyRetrieval=true
+DB_USER=usuario-de-aiven
+DB_PASSWORD=password-de-aiven
 
 Vercel frontend:
-VITE_API_BASE_URL=https://tu-backend.up.railway.app/api
+VITE_API_BASE_URL=https://tu-backend.onrender.com/api
 VITE_CLIENT_CHANNEL=WEB
 ```
 

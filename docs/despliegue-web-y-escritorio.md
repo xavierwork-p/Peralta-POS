@@ -1,6 +1,14 @@
 # Despliegue web y escritorio de Peralta POS
 
-Este documento deja preparado el camino recomendado:
+Este documento deja preparado el camino con Railway. Railway es comodo, pero no es la mejor opcion si se quiere evitar el trial de 30 dias o pagos pequenos.
+
+Para la ruta gratis recomendada, usar:
+
+```text
+docs/despliegue-gratis-vercel-render-aiven.md
+```
+
+Camino Railway:
 
 ```text
 GitHub

@@ -1497,3 +1497,129 @@ PENDIENTE PARA PUBLICAR REALMENTE:
 - Probar login online.
 - Crear lanzador con:
   `npm run create:web-launcher -- -Url https://tu-frontend.vercel.app`.
+
+---
+
+## 2026-06-27 - Git listo para despliegue
+
+MENSAJE DEL USUARIO:
+- "LISTO".
+
+INTERPRETACION:
+- El usuario termino el paso de GitHub o indico que ya esta listo para seguir.
+
+VALIDACION LOCAL:
+- `git status --short`: limpio.
+- Rama actual: `main`.
+- Remoto configurado:
+  `https://github.com/xavierwork-p/Peralta-POS.git`.
+- `git status -sb`: `main...origin/main`, sin archivos pendientes.
+
+SIGUIENTE PASO:
+- Publicar backend y MySQL en Railway.
+- Luego publicar frontend en Vercel.
+
+---
+
+## 2026-06-27 - Railway muestra trial de 30 dias
+
+MENSAJE DEL USUARIO:
+- El usuario envio captura de Railway donde aparece:
+  - "30 days or $5.00".
+- Pregunta/preocupacion implicita: Railway parece durar solo 30 dias o requerir
+  pago.
+
+INTERPRETACION:
+- Railway no es una opcion gratis permanente para este caso.
+- Segun la pagina oficial de precios de Railway, el trial da $5 de creditos y
+  expira en 30 dias.
+- Despues se puede seguir con planes de bajo costo, pero ya no conviene si el
+  usuario quiere compartir un link sin pagar ahora.
+
+RECOMENDACION AJUSTADA:
+- Mantener Vercel para el frontend.
+- Evaluar cambiar el backend de Railway a Render Free para demo.
+- Evaluar usar Aiven Free MySQL como base de datos gratuita sin limite fijo de
+  30 dias, con 1 GB de almacenamiento.
+- Advertencia: servicios gratis pueden dormir, tardar en abrir, tener limites y
+  no son ideales para produccion real.
+
+SIGUIENTE POSIBLE RUTA:
+- Vercel: frontend web.
+- Render: backend Java gratis para demo.
+- Aiven: MySQL gratis para demo.
+
+---
+
+## 2026-06-27 - Implementacion de ruta gratis Render + Aiven + Vercel
+
+MENSAJE DEL USUARIO:
+- "DALE".
+- El usuario aprobo cambiar de Railway a una ruta gratis para demo.
+
+INTERPRETACION:
+- Se debe dejar Railway como opcion secundaria.
+- La ruta principal gratis pasa a ser:
+  - Aiven para MySQL Free.
+  - Render para backend Java/Spring Boot gratis usando Docker.
+  - Vercel para frontend React.
+
+TRABAJO REALIZADO:
+- Se consultaron docs oficiales:
+  - Render Free:
+    - web services gratis disponibles para demo.
+    - se duermen tras 15 minutos sin trafico.
+    - pueden tardar cerca de 1 minuto en despertar.
+  - Render Supported Languages:
+    - Java debe desplegarse con Docker porque Render no lo corre como runtime
+      nativo principal.
+  - Aiven Service Pricing:
+    - Aiven Free incluye MySQL.
+    - no requiere tarjeta para servicio free.
+    - no tiene limite fijo de tiempo, aunque puede apagarse si queda inactivo.
+- Se agrego `Dockerfile`:
+  - build con Maven + Java 21.
+  - runtime con Eclipse Temurin 21 JRE.
+  - ejecuta `peralta-pos-api.jar`.
+- Se agrego `render.yaml`:
+  - servicio web Docker.
+  - plan free.
+  - healthcheck `/api/health`.
+  - variables:
+    - `SPRING_PROFILES_ACTIVE=render`.
+    - `JWT_SECRET` generado por Render.
+    - `CORS_ALLOWED_ORIGINS`.
+    - `DGII_RNC_AUTO_SYNC_ENABLED=false`.
+    - `DB_URL`, `DB_USER`, `DB_PASSWORD` como secretos manuales.
+- Se agrego `application-render.yml`:
+  - usa `DB_URL`, `DB_USER`, `DB_PASSWORD`.
+  - deja CORS configurable.
+  - apaga sincronizacion automatica DGII RNC por defecto en Render.
+- Se agrego `docs/despliegue-gratis-vercel-render-aiven.md`:
+  - pasos para Aiven MySQL Free.
+  - pasos para Render backend Docker.
+  - formato de `DB_URL`:
+    `jdbc:mysql://HOST:PORT/defaultdb?sslMode=REQUIRED&serverTimezone=UTC&allowPublicKeyRetrieval=true`.
+  - pasos para Vercel.
+  - pasos para lanzador Windows.
+- Se actualizo README:
+  - ruta recomendada gratis ahora es Aiven + Render + Vercel.
+  - Railway queda como alternativa.
+- Se actualizo `.env.example`:
+  - ejemplo de Render + Aiven.
+- Se actualizo `docs/despliegue-web-y-escritorio.md`:
+  - indica que Railway es una alternativa comoda pero no la principal gratis.
+
+PENDIENTE:
+- Subir cambios a GitHub.
+- Crear Aiven MySQL Free.
+- Crear Render Web Service/Blueprint.
+- Crear Vercel frontend.
+
+VALIDACION:
+- `npm run build:web`: correcto.
+- `npm run build:desktop-web`: correcto.
+- Build backend Maven genero:
+  `services/api/target/peralta-pos-api-0.1.0.jar`.
+- `git diff --check`: sin errores de formato; solo avisos normales de saltos
+  de linea en Windows.

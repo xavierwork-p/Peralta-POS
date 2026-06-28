@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    # Render usa una base externa. Para Aiven MySQL usar DB_URL con sslMode=REQUIRED.
+    # Ejemplo:
+    # jdbc:mysql://HOST:PORT/defaultdb?sslMode=REQUIRED&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+app:
+  cors:
+    # Cambiar despues por la URL final exacta de Vercel.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://*.vercel.app,tauri://localhost}
+  dgii:
+    rnc:
+      # En servicios gratis conviene apagar esta sincronizacion automatica al iniciar.
+      auto-sync-enabled: ${DGII_RNC_AUTO_SYNC_ENABLED:false}
