@@ -1009,8 +1009,8 @@ function LoginView({
   initialError: string;
   onLogin: (username: string, password: string) => Promise<void>;
 }) {
-  const [username, setUsername] = useState('ana.peralta');
-  const [password, setPassword] = useState('Peralta123!');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState(initialError);
   const [busy, setBusy] = useState(false);
 
@@ -1030,12 +1030,6 @@ function LoginView({
     } finally {
       setBusy(false);
     }
-  };
-
-  const useDemoUser = (demoUsername: string) => {
-    setUsername(demoUsername);
-    setPassword('Peralta123!');
-    setMessage('');
   };
 
   return (
@@ -1077,25 +1071,6 @@ function LoginView({
             <span>{busy ? 'Entrando...' : 'Iniciar sesion'}</span>
           </button>
         </form>
-
-        <details className="demo-login-list">
-          <summary>Accesos de prueba</summary>
-          <div className="demo-login-options">
-            <button type="button" onClick={() => useDemoUser('ana.peralta')}>
-              <strong>Ana Peralta</strong>
-              <span>Administradora</span>
-            </button>
-            <button type="button" onClick={() => useDemoUser('luis.mateo')}>
-              <strong>Luis Mateo</strong>
-              <span>Caja y ventas</span>
-            </button>
-            <button type="button" onClick={() => useDemoUser('rosa.jimenez')}>
-              <strong>Rosa Jimenez</strong>
-              <span>Almacen</span>
-            </button>
-            <small>Clave temporal de prueba: Peralta123!</small>
-          </div>
-        </details>
       </section>
     </main>
   );
@@ -1941,7 +1916,7 @@ function EmployeesView({
                 <input
                   value={form.username}
                   onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
-                  placeholder="luis.mateo"
+                  placeholder="usuario.empleado"
                 />
               </label>
               <label>

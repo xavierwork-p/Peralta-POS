@@ -273,17 +273,11 @@ npm run dev:desktop
 
 ## Usuarios demo
 
-En la pantalla de login hay un bloque discreto llamado **Accesos de prueba**.
+El sistema incluye usuarios demo sembrados para pruebas, pero no se muestran en
+la pantalla de login ni se publican sus claves en la documentacion.
 
-Usuarios disponibles:
-
-```text
-ana.peralta   / Peralta123!   Administradora
-luis.mateo    / Peralta123!   Caja y ventas
-rosa.jimenez  / Peralta123!   Almacen
-```
-
-La clave es temporal para desarrollo.
+Las credenciales deben entregarse por un canal privado al equipo que este
+probando la demo.
 
 ---
 

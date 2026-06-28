@@ -846,9 +846,9 @@ TRABAJO REALIZADO:
   movimientos, conteos, reposicion, compras, suplidores, reportes y ajustes.
 - Se corrigio la migracion V10 para sembrar usuarios demo de forma segura en MySQL.
 - Usuarios demo:
-  - ana.peralta / Peralta123! / administradora.
-  - luis.mateo / Peralta123! / caja y ventas.
-  - rosa.jimenez / Peralta123! / almacen.
+  - ana.peralta / clave demo privada / administradora.
+  - luis.mateo / clave demo privada / caja y ventas.
+  - rosa.jimenez / clave demo privada / almacen.
 - Se agrego pantalla de login al frontend.
 - Se guarda/restaura sesion con token local.
 - El menu principal se filtra segun permisos.
@@ -885,7 +885,7 @@ NOTAS:
 - Durante la prueba habia un backend viejo encendido desde el 2026-06-25. No
   conocia /api/auth/login y por eso devolvia 500. Se apagaron esos Java viejos y
   luego se probo con backend limpio y actualizado.
-- La clave Peralta123! es temporal/demo.
+- La clave demo es temporal y no debe publicarse en documentacion.
 
 PENDIENTE:
 - Agregar cambio obligatorio de contrasena cuando mustChangePassword sea true.
@@ -1623,3 +1623,207 @@ VALIDACION:
   `services/api/target/peralta-pos-api-0.1.0.jar`.
 - `git diff --check`: sin errores de formato; solo avisos normales de saltos
   de linea en Windows.
+
+---
+
+## 2026-06-27 - Cambios gratis subidos y siguiente paso Aiven
+
+MENSAJE DEL USUARIO:
+- "seguimos".
+
+VALIDACION LOCAL:
+- `git status --short`: limpio.
+- `git status -sb`: `main...origin/main`.
+- Ultimo commit:
+  `b87e624 Preparar despliegue gratis con Render Aiven y Vercel`.
+
+INTERPRETACION:
+- Los archivos para Render/Aiven/Vercel ya estan confirmados en Git.
+- El siguiente paso es crear la base MySQL Free en Aiven y tomar los datos de
+  conexion para Render.
+
+SIGUIENTE PASO:
+- Crear servicio Aiven for MySQL en plan Free.
+- Copiar Host, Port, User, Password y Database.
+- Formar `DB_URL` para Render:
+  `jdbc:mysql://HOST:PORT/defaultdb?sslMode=REQUIRED&serverTimezone=UTC&allowPublicKeyRetrieval=true`.
+
+---
+
+## 2026-06-27 - Aiven MySQL Free creado
+
+MENSAJE DEL USUARIO:
+- El usuario envio capturas de Aiven con el servicio MySQL creado y en estado
+  "Carrera/Running".
+
+DATOS VISIBLES NO SENSIBLES:
+- Servicio: `mysql-fbb69b6`.
+- Motor: MySQL 8.4.8.
+- Base de datos: `defaultdb`.
+- Host:
+  `mysql-fbb69b6-xavierperaltawork-0494.h.aivencloud.com`.
+- Puerto: `10099`.
+- Usuario: `avnadmin`.
+- SSL: obligatorio.
+
+DATO SENSIBLE:
+- La contraseña aparece en la captura, pero no se debe copiar ni guardar en la
+  bitacora.
+- Recomendacion: cuando el despliegue quede funcionando, rotar/cambiar la
+  contraseña en Aiven por seguridad.
+
+DB_URL PARA RENDER:
+- `jdbc:mysql://mysql-fbb69b6-xavierperaltawork-0494.h.aivencloud.com:10099/defaultdb?sslMode=REQUIRED&serverTimezone=UTC&allowPublicKeyRetrieval=true`.
+
+SIGUIENTE PASO:
+- Crear backend en Render usando el repositorio GitHub y poner las variables:
+  - `SPRING_PROFILES_ACTIVE=render`.
+  - `DB_URL` con la URL JDBC anterior.
+  - `DB_USER=avnadmin`.
+  - `DB_PASSWORD` con la contraseña de Aiven, sin compartirla.
+  - `CORS_ALLOWED_ORIGINS=https://*.vercel.app,tauri://localhost`.
+  - `DGII_RNC_AUTO_SYNC_ENABLED=false`.
+
+---
+
+## 2026-06-28 - Backend Render publicado y verificado
+
+MENSAJE DEL USUARIO:
+- El usuario compartio la URL del backend:
+  `https://peralta-pos-api.onrender.com`.
+
+VALIDACION:
+- Se probo:
+  `https://peralta-pos-api.onrender.com/api/health`.
+- Respuesta correcta:
+  - HTTP 200.
+  - `success=true`.
+  - `status=UP`.
+  - `service=Peralta POS API`.
+
+INTERPRETACION:
+- El backend en Render esta vivo y conectado lo suficiente para responder el
+  health check.
+- El siguiente paso es publicar el frontend en Vercel.
+
+VARIABLES PARA VERCEL:
+- `VITE_API_BASE_URL=https://peralta-pos-api.onrender.com/api`.
+- `VITE_CLIENT_CHANNEL=WEB`.
+
+SIGUIENTE PASO:
+- Crear/importar proyecto en Vercel apuntando al repo GitHub.
+- Configurar `Root Directory=apps/web`.
+- Pegar las variables anteriores.
+- Desplegar.
+- Luego volver a Render y reemplazar CORS por la URL exacta de Vercel.
+
+---
+
+## 2026-06-28 - Frontend Vercel publicado y login verificado
+
+MENSAJE DEL USUARIO:
+- El usuario compartio la URL del frontend:
+  `https://peralta-pos.vercel.app/`.
+- Luego pregunto "que tal" mientras se validaba.
+
+VALIDACION:
+- Frontend:
+  - `https://peralta-pos.vercel.app/`.
+  - HTTP 200.
+  - content-type `text/html`.
+- Backend health:
+  - `https://peralta-pos-api.onrender.com/api/health`.
+  - HTTP 200.
+  - `status=UP`.
+- CORS:
+  - preflight hacia `/api/auth/login` respondio HTTP 200.
+  - `access-control-allow-origin=https://peralta-pos.vercel.app`.
+  - metodos permitidos: `GET,POST,PUT,PATCH,DELETE,OPTIONS`.
+- Login demo:
+  - usuario: `ana.peralta`.
+  - resultado: HTTP 200, `success=true`.
+  - usuario autenticado: Ana Peralta.
+  - `allowWebAccess=true`.
+  - token recibido, pero no se mostro ni se guardo.
+
+INTERPRETACION:
+- La pagina web en Vercel ya carga.
+- El backend en Render responde.
+- CORS entre Vercel y Render esta funcionando.
+- La base de datos Aiven tiene datos demo y login operativo.
+
+SIGUIENTE PASO:
+- Crear lanzador Windows con:
+  `npm run create:web-launcher -- -Url https://peralta-pos.vercel.app/`.
+- Opcional: cambiar `CORS_ALLOWED_ORIGINS` en Render para dejar solo la URL
+  exacta:
+  `https://peralta-pos.vercel.app,tauri://localhost`.
+- Opcional por seguridad: rotar la contraseña de Aiven, porque aparecio en una
+  captura previa.
+
+ACCION REALIZADA:
+- Se ejecuto:
+  `npm run create:web-launcher -- -Url https://peralta-pos.vercel.app/`.
+- Se crearon:
+  - `output/desktop-launcher/Peralta POS Web.url`.
+  - `output/desktop-launcher/Abrir Peralta POS.cmd`.
+
+NOTA:
+- Estos archivos son lanzadores rapidos para Windows; se pueden copiar o enviar
+  a usuarios para abrir la web publicada.
+
+---
+
+## 2026-06-28 - Login sin usuarios visibles y usuario admin demo
+
+MENSAJE DEL USUARIO:
+- El usuario indico que aun veia usuarios de prueba visibles fuera/dentro del
+  login y que eso rompe la capa de seguridad.
+- Pidio:
+  - no mostrar usuarios en el login.
+  - escribir las credenciales demo solo en el chat.
+  - crear un usuario `admin` con clave temporal solicitada.
+  - mantener el login como una barrera real antes de ver el sistema.
+
+INTERPRETACION:
+- La pantalla de login no debe revelar usuarios ni claves.
+- Tampoco conviene publicar credenciales demo en README/documentacion publica.
+- Las credenciales se entregan al usuario en la conversacion, no en archivos del
+  repositorio.
+
+TRABAJO REALIZADO:
+- Frontend:
+  - `apps/web/src/App.tsx`.
+  - El login ya no viene precargado con usuario/clave demo.
+  - Se elimino el bloque desplegable `Accesos de prueba`.
+  - Se elimino la funcion para autollenar usuarios demo.
+  - Se cambio un placeholder interno de empleados de un usuario demo real a
+    `usuario.empleado`.
+- README:
+  - Se eliminaron credenciales demo visibles.
+  - Se dejo nota de que las credenciales deben entregarse por canal privado.
+- Bitacora:
+  - Se redactaron claves demo antiguas que estaban escritas en texto plano.
+- Backend/base de datos:
+  - Se agrego migracion:
+    `V14__add_demo_admin_user.sql`.
+  - Crea empleado `Admin Sistema`.
+  - Crea usuario `admin`.
+  - Asigna permisos `WRITE` a todos los modulos.
+  - Permite acceso web.
+  - La clave solicitada no se escribe en texto plano en la migracion; se guarda
+    como hash BCrypt.
+
+VALIDACION:
+- `npm run build:web`: correcto.
+- Build backend Maven genero:
+  `services/api/target/peralta-pos-api-0.1.0.jar`.
+- `git diff --check`: sin errores; solo avisos normales de saltos de linea en
+  Windows.
+- Busqueda en frontend/README/docs:
+  - No queda la clave demo anterior en texto plano.
+  - No queda `Accesos de prueba` en el login.
+
+PENDIENTE:
+- Hacer commit y push para que Vercel/Render redeployen.
+- Cuando Render termine el redeploy, probar login con el usuario admin demo.
