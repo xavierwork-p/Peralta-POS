@@ -1384,3 +1384,116 @@ ACCION RECOMENDADA:
 - Ejecutar:
   git config --global --add safe.directory 'C:/Users/peral/OneDrive/Escritorio/Proyectos Portafolio/peralta-pos'
 - Luego repetir git add, commit, remote y push.
+
+---
+
+## 2026-06-27 - Decision de despliegue web y ejecutable
+
+MENSAJE DEL USUARIO:
+- Quiere hacer un ejecutable que mande a la pagina web.
+- Quiere subir la pagina online para compartir un link y que otros puedan usar
+  el sistema.
+- Pregunta si conviene mas Vercel o Git/GitHub.
+
+INTERPRETACION:
+- GitHub debe usarse como repositorio del codigo.
+- GitHub Pages solo sirve bien para sitios estaticos; no corre el backend Java
+  ni MySQL del sistema.
+- Vercel sirve muy bien para publicar el frontend React y conectarse a GitHub.
+- Como el sistema necesita Spring Boot + MySQL, hace falta publicar tambien:
+  - backend/API.
+  - base de datos.
+
+RECOMENDACION:
+- Usar GitHub para guardar el codigo.
+- Usar Vercel para el frontend web.
+- Usar Railway para backend Spring Boot + MySQL, porque el proyecto usa Java y
+  MySQL.
+- El ejecutable de escritorio debe ser un launcher/app que abra la URL online
+  cuando ya exista el link definitivo.
+
+---
+
+## 2026-06-27 - Preparacion real para Vercel, Railway y escritorio
+
+MENSAJE DEL USUARIO:
+- "oky hagamoslo como dices".
+- El usuario aprobo preparar el despliegue con GitHub + Vercel + Railway y un
+  ejecutable/lanzador para Windows.
+
+INTERPRETACION:
+- Hay que dejar el proyecto listo para:
+  - publicar el frontend React en Vercel.
+  - publicar el backend Java/Spring Boot en Railway.
+  - conectar el backend a MySQL de Railway.
+  - crear un lanzador rapido o instalador de escritorio.
+  - diferenciar login WEB y DESKTOP para respetar permisos.
+
+TRABAJO REALIZADO:
+- Se agrego `railway.json` en la raiz:
+  - build con Maven usando `services/api/pom.xml`.
+  - start con el JAR `services/api/target/peralta-pos-api-0.1.0.jar`.
+  - healthcheck en `/api/health`.
+- Se agrego `nixpacks.toml`:
+  - Java 21.
+  - Maven.
+  - build y start del backend.
+- Se ajusto `application.yml`:
+  - el backend ahora puede usar `PORT` automaticamente en plataformas cloud.
+- Se agrego `application-railway.yml`:
+  - usa `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`,
+    `MYSQLDATABASE`.
+  - deja `DGII_RNC_AUTO_SYNC_ENABLED=false` por defecto en nube.
+  - deja CORS configurable con `CORS_ALLOWED_ORIGINS`.
+- Se actualizo `CorsConfig.java`:
+  - ahora soporta origenes exactos y patrones con `*`, util para dominios de
+    despliegue.
+- Se agrego `apps/web/vercel.json`:
+  - Vite.
+  - build `npm run build`.
+  - salida `dist`.
+  - rewrite a `index.html` para que la app React funcione al recargar rutas.
+- Se agrego `apps/web/.env.production.example`:
+  - `VITE_API_BASE_URL=https://tu-backend.up.railway.app/api`.
+  - `VITE_CLIENT_CHANNEL=WEB`.
+- Se agrego `apps/web/.env.desktop.example`:
+  - `VITE_API_BASE_URL=https://tu-backend.up.railway.app/api`.
+  - `VITE_CLIENT_CHANNEL=DESKTOP`.
+- Se agrego `scripts/build-desktop-web.ps1`:
+  - compila la interfaz en modo desktop.
+  - fuerza `VITE_CLIENT_CHANNEL=DESKTOP`.
+  - mantiene el truco de unidad corta para evitar errores de OneDrive.
+- Se cambio `apps/desktop/src-tauri/tauri.conf.json`:
+  - el build de Tauri ahora usa `scripts/build-desktop-web.ps1`.
+- Se agrego `scripts/create-web-launcher.ps1`:
+  - crea un `.url` y un `.cmd` que abren la URL online del sistema.
+- Se agregaron scripts en `package.json`:
+  - `build:desktop-web`.
+  - `create:web-launcher`.
+- Se actualizo `.gitignore`:
+  - ignora `.env.*` reales.
+  - conserva `.env.*.example`.
+- Se agrego `docs/despliegue-web-y-escritorio.md`:
+  - pasos para GitHub, Railway, Vercel, lanzador y Tauri.
+- Se actualizo `README.md`:
+  - nueva seccion de despliegue web/escritorio.
+  - variables principales de Railway y Vercel.
+- Se actualizo `apps/desktop/README.md`:
+  - pasos para compilar escritorio conectado al backend online.
+
+VALIDACION:
+- Backend:
+  - Maven genero `services/api/target/peralta-pos-api-0.1.0.jar`.
+- Frontend web:
+  - `npm run build:web`: correcto.
+- Frontend desktop:
+  - `npm run build:desktop-web`: correcto.
+
+PENDIENTE PARA PUBLICAR REALMENTE:
+- Subir estos cambios a GitHub.
+- Crear el proyecto y MySQL en Railway.
+- Crear el proyecto web en Vercel apuntando a `apps/web`.
+- Copiar la URL final de Vercel en `CORS_ALLOWED_ORIGINS` de Railway.
+- Probar login online.
+- Crear lanzador con:
+  `npm run create:web-launcher -- -Url https://tu-frontend.vercel.app`.

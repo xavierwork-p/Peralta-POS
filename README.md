@@ -158,11 +158,14 @@ docs/
   arquitectura.md                  Vision tecnica
   modulos.md                       Modulos del sistema
   fiscal-rd.md                     Alcance fiscal dominicano
+  despliegue-web-y-escritorio.md   Guia para Vercel, Railway y escritorio
   roadmap.md                       Plan de trabajo
 
 scripts/
   dev-web.ps1       Arranque de web con backend automatico
   build-web.ps1     Build web
+  build-desktop-web.ps1 Build web con canal DESKTOP para Tauri
+  create-web-launcher.ps1 Crea lanzador rapido hacia la web publicada
   dev-api-tools.ps1 Herramientas para prender/apagar backend
 ```
 
@@ -309,6 +312,56 @@ En este entorno:
 
 ```powershell
 & 'C:\Program Files\NetBeans-24\netbeans\java\maven\bin\mvn.cmd' -q -f services/api/pom.xml -DskipTests package
+```
+
+---
+
+## Despliegue web y escritorio
+
+La ruta recomendada para publicar el sistema es:
+
+```text
+GitHub -> Railway backend/MySQL -> Vercel frontend -> Windows launcher/instalador
+```
+
+Archivos ya preparados:
+
+- `railway.json`
+- `nixpacks.toml`
+- `apps/web/vercel.json`
+- `apps/web/.env.production.example`
+- `apps/web/.env.desktop.example`
+- `services/api/src/main/resources/application-railway.yml`
+
+Guia completa:
+
+```text
+docs/despliegue-web-y-escritorio.md
+```
+
+Variables principales:
+
+```text
+Railway backend:
+SPRING_PROFILES_ACTIVE=railway
+JWT_SECRET=poner-una-clave-larga-y-segura
+CORS_ALLOWED_ORIGINS=https://tu-frontend.vercel.app,tauri://localhost
+
+Vercel frontend:
+VITE_API_BASE_URL=https://tu-backend.up.railway.app/api
+VITE_CLIENT_CHANNEL=WEB
+```
+
+Crear un lanzador rapido para Windows:
+
+```powershell
+npm run create:web-launcher -- -Url https://tu-frontend.vercel.app
+```
+
+Compilar instalador de escritorio:
+
+```powershell
+npm run build:desktop
 ```
 
 ---

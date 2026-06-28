@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "powershell -ExecutionPolicy Bypass -File ../../../scripts/dev-web.ps1",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "powershell -ExecutionPolicy Bypass -File ../../../scripts/build-web.ps1",
+    "beforeBuildCommand": "powershell -ExecutionPolicy Bypass -File ../../../scripts/build-desktop-web.ps1",
     "frontendDist": "../../web/dist"
   },
   "app": {

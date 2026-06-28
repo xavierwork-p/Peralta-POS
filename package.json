@@ -11,8 +11,10 @@
     "db:down": "docker compose down",
     "dev:web": "powershell -ExecutionPolicy Bypass -File scripts/dev-web.ps1",
     "build:web": "powershell -ExecutionPolicy Bypass -File scripts/build-web.ps1",
+    "build:desktop-web": "powershell -ExecutionPolicy Bypass -File scripts/build-desktop-web.ps1",
     "dev:desktop": "npm --prefix apps/desktop run tauri:dev",
     "build:desktop": "npm --prefix apps/desktop run tauri:build",
+    "create:web-launcher": "powershell -ExecutionPolicy Bypass -File scripts/create-web-launcher.ps1",
     "dev:api": "mvn -f services/api/pom.xml spring-boot:run",
     "test:api": "mvn -f services/api/pom.xml test",
     "sync:dgii-rnc": "powershell -ExecutionPolicy Bypass -File scripts/sync-dgii-rnc.ps1"
